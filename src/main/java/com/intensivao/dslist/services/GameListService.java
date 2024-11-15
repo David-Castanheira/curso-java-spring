@@ -8,7 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.intensivao.dslist.dto.GameListDTO;
 import com.intensivao.dslist.entities.GameList;
+import com.intensivao.dslist.projections.GameMinProjection;
 import com.intensivao.dslist.repositories.GameListRepository;
+import com.intensivao.dslist.repositories.GameRepository;
 
 @Service
 public class GameListService {
@@ -16,10 +18,31 @@ public class GameListService {
     @Autowired
     private GameListRepository gameListRepository;
 
+    @Autowired
+    private GameRepository gameRepository;
+
     @Transactional(readOnly = true)
     public List<GameListDTO> findAll() {
         List<GameList> result = gameListRepository.findAll();
         List<GameListDTO> dto = result.stream().map(x -> new GameListDTO(x)).toList();
         return dto;
+    }
+
+    // Movimentação de uma lista de games
+    // A função recebe como argumentos o id da lista, a posição de início e a posição de destino ou final 
+    @Transactional
+    public void move(Long listId, int sourceIndex, int destinationIndex) {
+        List<GameMinProjection> list = gameRepository.searchByList(listId);
+
+        GameMinProjection obj = list.remove(sourceIndex);
+        list.add(destinationIndex, obj);
+
+        int min = sourceIndex < destinationIndex ? sourceIndex : destinationIndex;
+        int max = sourceIndex < destinationIndex ? destinationIndex : sourceIndex;
+
+        for (int i = min; i <= max; i++) {
+            gameListRepository.updateBelongingPosition(listId, list.get(i).getId(), i);
+        }
+
     }
 }
